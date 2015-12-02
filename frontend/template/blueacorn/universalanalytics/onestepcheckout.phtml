@@ -2,6 +2,7 @@
 <?php $this->JS = Mage::getSingleton('baua/js'); ?>
 <?php $itemsCollection = Mage::getSingleton('checkout/session')->getQuote()->getItemsCollection(); ?>
 <?php $_helper = Mage::helper('baua') ?>
+<?php $_debug = $_helper->isDebugEnabled(); ?>
 <?php $productArray = array(); ?>
 <?php if($_helper->isActive()): ?>
     <?php foreach ($itemsCollection as $item) :?>
@@ -36,32 +37,57 @@
         */
         checkout.gotoSectionparent = checkout.gotoSection;
         checkout.gotoSection = function(section, reloadProgressBlock) {
+            try {
+                var curStep = this.steps.indexOf(this.currentStep)+1;
+                var nextStep = this.steps.indexOf(section)+1;
+                var option = undefined;
 
-            if (this.currentStep == 'login') {
-                ga('ec:setAction', 'checkout_option', {
-                    'step': this.steps.indexOf(this.currentStep)+1,
-                    'option': this.method
-                });
-                ga('send', 'event', 'Checkout', 'Option');
+                <?php if ($_debug): ?>
+                    console.log("ga gotoSection(" + section + ") from " + this.currentStep);
+                <?php endif; ?>
+
+                if (this.currentStep == 'login') {
+                    option = this.method;
+                }
+
+                if (this.currentStep == 'shipping_method') {
+                    option = $(shippingMethod.form).select('input[name="shipping_method"][checked]')[0];
+                    option = (typeof option == 'undefined') ? null : option.value;
+                }
+
+                if (typeof option !== 'undefined') {
+                    <?php if ($_debug): ?>
+                        console.log("ga('ec:setAction', 'checkout_option', {step: " + curStep + ", option: '" + option + "'})");
+                        console.log("ga('send', 'event', 'Checkout', 'Option')");
+                    <?php endif; ?>
+
+                    ga('ec:setAction', 'checkout_option', {
+                        'step': curStep,
+                        'option': option
+                    });
+                    ga('send', 'event', 'Checkout', 'Option');
+                } else {
+                    <?php if ($_debug): ?>
+                        console.log("ga unrecognized step `" + this.currentStep + "`");
+                    <?php endif; ?>
+                }
+
+                <?php if ($_debug): ?>
+                    console.log("ga('ec:setAction', 'checkout', {step: " + nextStep + ", label: " + section + "})");
+                <?php endif; ?>
+                ga('ec:setAction','checkout', {'step': nextStep, 'label': section });
+                <?php foreach($productArray as $product) : ?>
+                <?php echo $product; ?>
+                <?php endforeach; ?>
+                <?php echo $this->JS->generateGoogleJS('send', 'pageview')?>
+            } catch (e) {
+                <?php if ($_debug): ?>
+                try {
+                    console.log("Google analytics code failed");
+                    console.log(e);
+                } catch(e2) {}
+                <?php endif; ?>
             }
-
-            if (this.currentStep == 'shipping_method') {
-                shippingMethodOption = $(shippingMethod.form).select('input[name="shipping_method"][checked]')[0];
-                shippingMethodOption = (typeof shippingMethodOption == 'undefined') ? null : shippingMethodOption.value;
-
-                ga('ec:setAction', 'checkout_option', {
-                    'step': this.steps.indexOf(this.currentStep)+1,
-                    'option': shippingMethodOption
-                });
-                ga('send', 'event', 'Checkout', 'Option');
-            }
-
-
-            ga('ec:setAction','checkout', {'step': this.steps.indexOf(section)+1, 'label': section });
-            <?php foreach($productArray as $product) : ?>
-            <?php echo $product; ?>
-            <?php endforeach; ?>
-            <?php echo $this->JS->generateGoogleJS('send', 'pageview')?>
 
             if (reloadProgressBlock) {
                 this.reloadProgressBlock(this.currentStep);
