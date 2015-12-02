@@ -2,6 +2,19 @@
 
 class BlueAcorn_UniversalAnalytics_Model_Js {
 
+    protected $debug;
+
+    /**
+     * Constructor, sets up a shortcut variable for the main helper
+     * class.
+     *
+     * @name __construct
+     */
+    public function __construct() {
+        $this->helper = Mage::helper('baua');
+        $this->debug = $this->helper->isDebugEnabled();
+    }
+
     /**
      * Generate an observer for the specified $event which calls an
      * anonymous function containing the provided $content
@@ -64,12 +77,20 @@ class BlueAcorn_UniversalAnalytics_Model_Js {
         $params = func_get_args();
         $name = array_shift($params);
         $outputList = Array();
+        $result = '';
 
         foreach ($params as $element) {
             $outputList[] = Zend_Json::encode($element, false, array('enableJsonExprFinder' => true));
         }
 
-        return "{$name}(" . implode(', ', $outputList) . ");\n";
+        $debug = array('"send"', '"ec:setAction"');
+        if ($this->debug and in_array($outputList[0], $debug)) {
+            $result .= "console.log('GA: ".implode(', ', $outputList)."')\n";
+        }
+
+        $result .= "{$name}(" . implode(', ', $outputList) . ");\n";
+
+        return $result;
     }
 
     /**

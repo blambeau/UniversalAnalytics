@@ -1,5 +1,6 @@
 <!-- Universal Analytics Start -->
 <?php $helper = Mage::helper('baua') ?>
+<?php $this->JS = Mage::getSingleton('baua/js'); ?>
 <?php if($helper->isActive()): ?>
      <script type="text/javascript">
 
@@ -20,7 +21,7 @@
          <?php echo $helper->generatePromoImpressions() ?>
 
          <?php echo $helper->getAction() ?>
-         ga('send', 'pageview');
+         <?php echo $this->JS->generateGoogleJS('send', 'pageview'); ?>
 
          <?php echo $helper->generateProductClickEvents() ?>
          <?php echo $helper->generatePromoClickEvents() ?>
